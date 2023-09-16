@@ -129,12 +129,22 @@ class Portfolio:
         portfolio_data = self.cursor.fetchall()
         total_prices = self.fetch_totals([x for x in portfolio_data])
         portfolio_total = 0
+
+
+        # Calculate the elapsed time in years
+        end_date = datetime.date.today()
+        elapsed_years = (end_date - self.start_date).days / 365.0  # Assuming a 365-day year
+
+        # Calculate the annualized returns
+        annualized_returns = ((portfolio_total / self.funds) ** (1 / elapsed_years)) - 1
+
+
         for symbol, prices in total_prices.items():
             portfolio_total += prices[1]
         print(f"""
             Portfolio Total: ${portfolio_total:.2f} 
-            ROI: {portfolio_total/self.funds*100:.2f}
-            
+            ROI: {portfolio_total/self.funds*100:.2f}%
+            Annualized Returns {annualized_returns * 100:.2f}%
             """)
         return portfolio_total
 
