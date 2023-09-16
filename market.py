@@ -1,6 +1,6 @@
 import mysql.connector
 import getpass
-import yfinance
+import yfinance as yf
 
 class Portfolio:
     def __init__(self, host, user, password, database, funds) -> None:
@@ -19,7 +19,6 @@ class Portfolio:
                 stk_owned INT
             );
         """
-
 
     def table_exists(self, cursor, table_name):
         try:
@@ -88,56 +87,39 @@ class Portfolio:
         except mysql.connector.Error as err:
             print(f"(3e) Error selling {symbol}: {err}")
 
-
-    def fetch_prices(self) -> None:
-        self.cursor.execute(self.select_query)
-        result = self.cursor.fetchall()
-        print(result)
+    def fetch_totals(self, tickers) -> dict:
+        prices = {}  # Create an empty dictionary to store prices
+        for pack in tickers:
+            try:
+                # Create a Ticker object for the symbol
+                symbol, quantity = pack[0], pack[1]
+                company_info = yf.Ticker(symbol)
+                
+                # Get the current stock price
+                current_price = company_info.history(period="1d")["Close"].iloc[0]
+                
+                # Add the price to the dictionary with the symbol as the key
+                prices[symbol] = (current_price, current_price * quantity)
+            except Exception as e:
+                print(f"Error fetching price for {symbol}: {e}")
+        return prices
 
     def open_portfolio(self):
-        try:
-            print("(1) Creating portfolio table")
-            self.cursor.execute(self.table_query)
-        except mysql.connector.Error as err:
-            print(f"(1e) Error creating Portfolio: {err}")
-
+        self.cursor.execute(self.table_query)
         try:
             print("(2) Fetching portfolio")
             self.cursor.execute(self.select_query)
-            print(self.cursor.fetchall())
+            portfolio_data = self.cursor.fetchall()
+            total_prices = self.fetch_totals([x for x in portfolio_data])
+            
+            for symbol, prices in total_prices.items():
+                print(f"Stock Symbol: {symbol}    PPU: ${prices[0]:.2f}    Total Price: ${prices[1]:.2f}\n")
         except mysql.connector.Error as err:
             print(f"(1e) Error fetching portfolio : {err}")
-
-        
-        #     print(f"Accessing portfolio '{portfolio_name}'.")
-        #     try:
-        #         table_query = f"""
-        #         SELECT * FROM {portfolio_name};
-        #         """
-        #         self.cursor.execute(table_query)
-
-        #         #TODO: update prices here.
-        #         print(self.cursor.fetchall())
-        #     except mysql.connector.Error as err:
-        #         
-        # else:
-        #     print(f"The portfolio '{portfolio_name}' does not exist. Creating new portfolio.")
-        #     try:
-        #         #TODO: create a dummy stock here that controls your total money
-        #         create_table_query = f"""
-        #         CREATE TABLE IF NOT EXISTS {portfolio_name} (
-        #             id INT AUTO_INCREMENT PRIMARY KEY,
-        #             column1 VARCHAR(255),
-        #             column2 INT
-        #         )
-        #         """
-        #         self.cursor.execute(create_table_query)
-        #         print(f"Portfolio '{portfolio_name}' has been created.")
-        #     except mysql.connector.Error as err:
-        #         print(f"Error creating Portfolio '{portfolio_name}': {err}")
         
 
-    # Add other methods to interact with your database here
+    def get_metrics(self) -> None:
+        pass
 
 if __name__ == "__main__":
     # host = input("Enter MySQL host: ")
@@ -162,10 +144,11 @@ if __name__ == "__main__":
 
     # Perform database operations here
     portfolio.open_portfolio()
-    portfolio.buy_stock("GOOGL", 1000)
+    portfolio.buy_stock("META", 500)
+    portfolio.buy_stock("TSLA", 500)
     portfolio.buy_stock("GOOGL", 1000)
     portfolio.sell_stock("GOOGL", 1000)
-    portfolio.fetch_prices()
+    portfolio.open_portfolio()
 
     portfolio.close_connection()
 
