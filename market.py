@@ -1,6 +1,9 @@
 import mysql.connector
 import getpass
 import yfinance as yf
+import datetime
+
+# Get the current date
 
 class Portfolio:
     def __init__(self, host, user, password, database, funds) -> None:
@@ -9,8 +12,8 @@ class Portfolio:
         self.password = password
         self.database = database
         self.connection = None
-        self.funds = funds
         self.cursor = self.connect_to_database()
+        self.start_date = datetime.date.today()
 
         self.select_query = """SELECT * FROM portfolio;"""
         self.table_query = """
@@ -83,7 +86,8 @@ class Portfolio:
             values = (symbol, quantity, quantity)
             self.cursor.execute(sell_query, values)
             self.connection.commit()
-            print(f"Sold {quantity} shares of {symbol}.")
+            self.fetch_totals()
+            print(f"Sold {quantity} shares of {symbol} for .")
         except mysql.connector.Error as err:
             print(f"(3e) Error selling {symbol}: {err}")
 
@@ -111,28 +115,28 @@ class Portfolio:
             self.cursor.execute(self.select_query)
             portfolio_data = self.cursor.fetchall()
             total_prices = self.fetch_totals([x for x in portfolio_data])
-            
             for symbol, prices in total_prices.items():
                 print(f"Stock Symbol: {symbol}    PPU: ${prices[0]:.2f}    Total Price: ${prices[1]:.2f}\n")
         except mysql.connector.Error as err:
             print(f"(1e) Error fetching portfolio : {err}")
-        
-
+    
     def get_metrics(self) -> None:
-        pass
+        self.cursor.execute(self.select_query)
+        result = self.cursor.fetchall()
+        agg = 0
+        for pack in result:
+            symbol, quantity = pack[0], pack[1]
+            company_info = yf.Ticker(symbol)
+            current_price = company_info.history(period="1d")["Close"].iloc[0]
+            agg += current_price * quantity
+        return agg
 
 if __name__ == "__main__":
-    # host = input("Enter MySQL host: ")
-    # user = input("Enter MySQL user: ")
-    # password = getpass.getpass("Enter your password: ")
-    # database = input("Enter MySQL database: ")
-    # funds = input("Enter Funds:")
-
     host = "localhost"
     user = "root"
     password = getpass.getpass("Enter your password: ")
     database="dsci560_lab3"
-    funds=1000
+    funds=100000
 
     portfolio = Portfolio(
         host=host,
