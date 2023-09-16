@@ -133,18 +133,12 @@ class Portfolio:
 
         # Calculate the elapsed time in years
         end_date = datetime.date.today()
-        elapsed_years = (end_date - self.start_date).days / 365.0  # Assuming a 365-day year
-
-        # Calculate the annualized returns
-        annualized_returns = ((portfolio_total / self.funds) ** (1 / elapsed_years)) - 1
-
+        print(end_date - self.start_date)
+        elapsed_days = (end_date - self.start_date).days + 1
 
         for symbol, prices in total_prices.items():
             portfolio_total += prices[1]
-        print(f"""
-            Portfolio Total: ${portfolio_total:.2f} 
-            ROI: {portfolio_total/self.funds*100:.2f}%
-            Annualized Returns {annualized_returns * 100:.2f}%
+        print(f"""Portfolio Total: ${portfolio_total:.2f}\nROI: {portfolio_total/self.funds*100:.2f}%\nAverage ROI per day: {portfolio_total/self.funds*100/elapsed_days:.2f}%
             """)
         return portfolio_total
 
